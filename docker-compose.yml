@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./backend:/app
+  #   environment:
+  #     - ENV=development
+
+  # Frontend Web Application
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+
+  # Vector Database / Postgres Database (uncomment when database choices are finalized)
+  # db:
+  #   image: pgvector/pgvector:pg15
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_DB: knowledge_hub
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: password

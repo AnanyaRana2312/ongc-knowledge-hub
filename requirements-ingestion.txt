@@ -1,0 +1,21 @@
+# =============================================================================
+# ONGC Knowledge Hub — Ingestion Requirements (Install in Week 2)
+# =============================================================================
+# These packages have large binary dependencies (onnxruntime, tesseract bindings).
+# Install these when starting the document ingestion pipeline.
+#
+# Usage: pip install -r requirements-ingestion.txt --timeout 300
+# =============================================================================
+
+# PDF parsing
+pypdf>=4.2.0
+
+# DOCX parsing
+python-docx>=1.1.0
+
+# OCR support (also requires Tesseract binary: https://github.com/UB-Mannheim/tesseract/wiki)
+pytesseract>=0.3.10
+Pillow>=10.3.0
+
+# Multi-format document loader (heavy — pulls in onnxruntime, numba, numpy)
+unstructured>=0.14.0
