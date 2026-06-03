@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.config import settings
-from backend.api.routes import chat, ingest, search
+from backend.api.routes import chat, ingest, search, documents
 from backend.models.ollama_client import health_check
 
 # ---------------------------------------------------------------------------
@@ -57,6 +57,7 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(search.router)
 app.include_router(ingest.router)
+app.include_router(documents.router)
 
 # ---------------------------------------------------------------------------
 # Core Endpoints

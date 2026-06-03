@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3"
+    ollama_embedding_model: str = "nomic-embed-text"
     ollama_timeout: int = 120
 
     # ChromaDB
@@ -32,6 +33,9 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = "INFO"
+
+    # OCR Settings
+    tesseract_cmd: str = ""
 
 
 # Singleton instance — import this everywhere

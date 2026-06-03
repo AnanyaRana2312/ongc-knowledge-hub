@@ -24,11 +24,9 @@ def get_embeddings() -> OllamaEmbeddings:
     """
     Return a cached OllamaEmbeddings instance.
 
-    Uses the same llama3 model as the LLM for simplicity.
-    Can be swapped to a dedicated embedding model (e.g. nomic-embed-text)
-    by changing OLLAMA_MODEL in .env without modifying any calling code.
+    Uses the dedicated embedding model (default: nomic-embed-text) in Ollama.
     """
     return OllamaEmbeddings(
-        model=settings.ollama_model,
+        model=settings.ollama_embedding_model,
         base_url=settings.ollama_base_url,
     )
