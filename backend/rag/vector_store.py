@@ -118,6 +118,24 @@ def similarity_search(query: str, domain: str, k: int = 5) -> List[Document]:
     return vector_store.similarity_search(query, k=k)
 
 
+def similarity_search_with_score(query: str, domain: str, k: int = 5) -> list:
+    """
+    Run similarity search returning (Document, distance_score) tuples.
+    Lower L2 distance score = closer / more relevant match.
+
+    Args:
+        query: Search query string.
+        domain: Domain namespace to search inside.
+        k: Number of nearest matches to return.
+
+    Returns:
+        List of (Document, float) tuples sorted by distance ascending.
+    """
+    vector_store = get_vector_store(domain)
+    logger.debug(f"Similarity search with score in domain '{domain}' (k={k}) for: '{query}'")
+    return vector_store.similarity_search_with_score(query, k=k)
+
+
 def list_active_domains() -> List[str]:
     """
     List all active collection names in ChromaDB.
