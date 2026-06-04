@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import { useState, useEffect, useCallback } from "react";
-import { ingestDocument, fetchDocuments } from "../api";
+import { ingestDocument, fetchDocuments, deleteDocument } from "../api";
 import { INGEST_DOMAINS } from "../constants";
 
 export default function Sidebar({ onUploadSuccess }) {
@@ -42,6 +42,23 @@ export default function Sidebar({ onUploadSuccess }) {
       setUploadStatus({ type: "success", message: `"${file.name}" ingested successfully!` });
       await loadDocuments();
       if (onUploadSuccess) onUploadSuccess();
+      setTimeout(() => setUploadStatus(null), 4000);
+    } catch (err) {
+      setUploadStatus({ type: "error", message: err.message });
+    }
+  };
+
+  const handleDelete = async (filename) => {
+    const displayname = filename.split(/[/\\]/).pop();
+    if (!window.confirm(`Are you sure you want to delete "${displayname}"? This will remove all its data from the knowledge base.`)) {
+      return;
+    }
+    
+    setUploadStatus({ type: "loading", message: `Deleting "${displayname}"…` });
+    try {
+      await deleteDocument(filename);
+      setUploadStatus({ type: "success", message: `"${displayname}" deleted successfully!` });
+      await loadDocuments();
       setTimeout(() => setUploadStatus(null), 4000);
     } catch (err) {
       setUploadStatus({ type: "error", message: err.message });
@@ -154,6 +171,24 @@ export default function Sidebar({ onUploadSuccess }) {
                 </div>
                 <div className="doc-item-domain">{doc.domain.replace(/_/g, " ")}</div>
               </div>
+              <button 
+                onClick={() => handleDelete(doc.source)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  opacity: 0.5,
+                  padding: '4px',
+                  transition: 'opacity 0.2s',
+                  lineHeight: 1
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}
+                title="Delete document"
+              >
+                🗑️
+              </button>
             </div>
           ))
         )}

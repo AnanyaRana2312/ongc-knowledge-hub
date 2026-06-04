@@ -72,3 +72,22 @@ export async function checkHealth() {
   if (!response.ok) throw new Error("API unreachable");
   return response.json();
 }
+
+/**
+ * Delete a document from the vector store by its filename.
+ * @param {string} filename
+ * @returns {Promise<void>}
+ */
+export async function deleteDocument(filename) {
+  const response = await fetch(`${API_BASE}/documents/${encodeURIComponent(filename)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    let detail = `Delete failed (${response.status})`;
+    try {
+      const err = await response.json();
+      detail = err.detail || JSON.stringify(err);
+    } catch {/* ignore parse error */}
+    throw new Error(detail);
+  }
+}
