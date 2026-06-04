@@ -36,7 +36,7 @@ class DomainEnum(str, enum.Enum):
     geology = "geology"
     finance_and_accounts = "finance and accounts"
     materials_managements = "materials managements"
-    health_and_safety = "health and saftey"
+    health_and_safety = "health and safety"
     instrumentation = "instrumentation"
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

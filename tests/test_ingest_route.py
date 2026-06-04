@@ -56,7 +56,7 @@ def test_ingest_document_unsupported_format(mock_run_pipeline):
     response = client.post(
         "/ingest/",
         files={"file": ("malicious.exe", b"binarycontent", "application/octet-stream")},
-        params={"domain": "it-security"}
+        params={"domain": "safety"}
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
