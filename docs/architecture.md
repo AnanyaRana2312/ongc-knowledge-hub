@@ -133,8 +133,7 @@ User Question (natural language)
 │                     └───────────┘                       │
 │                                                         │
 │   ✅ No data leaves this boundary                       │
-│   ✅ All containers signed with Cosign (Week 4)         │
-│   ✅ Sigstore verification enforced on deploy (Week 4)  │
+│   ✅ Trivy integrated for vulnerability scanning (Week 4) │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -163,5 +162,5 @@ FastAPI (/metrics endpoint)
 | Vector DB | ChromaDB | Lightweight, no separate service needed |
 | API framework | FastAPI | Async, auto-docs, type-safe |
 | Orchestration | LangChain | Mature RAG tooling, Ollama integration |
-| Container signing | Cosign + Sigstore | Supply chain security (CNCF standard) |
+| Vulnerability Scanning | Trivy | Local scanning for OS and Python dependency CVEs |
 | Observability | Prometheus + Grafana | Industry standard, Docker-native |
