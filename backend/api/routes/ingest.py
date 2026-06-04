@@ -23,8 +23,24 @@ router = APIRouter(prefix="/ingest", tags=["Ingestion"])
 TEMP_UPLOAD_DIR = Path("data/temp")
 
 
+import enum
+
+class DomainEnum(str, enum.Enum):
+    safety = "safety"
+    drilling = "drilling"
+    hr_management = "HR management"
+    supply_chain_management = "supply chain management"
+    fire = "fire"
+    procurement = "procurement"
+    production = "production"
+    geology = "geology"
+    finance_and_accounts = "finance and accounts"
+    materials_managements = "materials managements"
+    health_and_safety = "health and saftey"
+    instrumentation = "instrumentation"
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def ingest_document(file: UploadFile = File(...), domain: str = "default"):
+async def ingest_document(file: UploadFile = File(...), domain: DomainEnum = DomainEnum.safety):
     """
     Upload a document (PDF, DOCX, or plain text) for processing and indexing
     into the ChromaDB vector store under a specific domain.
@@ -43,7 +59,7 @@ async def ingest_document(file: UploadFile = File(...), domain: str = "default")
     filename = Path(file.filename).name
     temp_file_path = TEMP_UPLOAD_DIR / filename
 
-    logger.info(f"Received file upload '{filename}' for domain '{domain}'")
+    logger.info(f"Received file upload '{filename}' for domain '{domain.value}'")
 
     try:
         # 3. Write uploaded file to disk
@@ -51,7 +67,7 @@ async def ingest_document(file: UploadFile = File(...), domain: str = "default")
             shutil.copyfileobj(file.file, buffer)
 
         # 4. Run the ingestion orchestrator
-        summary = run_ingestion_pipeline(str(temp_file_path), domain)
+        summary = run_ingestion_pipeline(str(temp_file_path), domain.value)
         return summary
 
     except ValueError as val_err:
