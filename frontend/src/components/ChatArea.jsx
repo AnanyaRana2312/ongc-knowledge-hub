@@ -1,6 +1,6 @@
 // src/components/ChatArea.jsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { sendChatMessage, checkHealth } from "../api";
+import { sendChatMessage, checkHealth, getSessionMessages, createSession } from "../api";
 import { DOMAINS, SAMPLE_QUESTIONS } from "../constants";
 
 function SendIcon() {
@@ -59,7 +59,7 @@ function Message({ msg }) {
   );
 }
 
-export default function ChatArea() {
+export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewChat }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [domain, setDomain] = useState("all");
@@ -82,6 +82,25 @@ export default function ChatArea() {
       .then(() => setApiOnline(true))
       .catch(() => setApiOnline(false));
   }, []);
+
+  // Load session messages when activeSessionId changes
+  useEffect(() => {
+    if (!activeSessionId) {
+      setMessages([]);
+      return;
+    }
+    setLoading(true);
+    getSessionMessages(activeSessionId)
+      .then(data => {
+        setMessages(data);
+      })
+      .catch(err => {
+        console.error(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [activeSessionId]);
 
   // Auto-resize textarea
   const handleInputChange = (e) => {
@@ -107,7 +126,15 @@ export default function ChatArea() {
     setLoading(true);
 
     try {
-      const data = await sendChatMessage(question, domain === "all" ? null : domain);
+      let currentSessionId = activeSessionId;
+      if (!currentSessionId) {
+        // Create session first
+        const sess = await createSession(question.substring(0, 50));
+        currentSessionId = sess.id;
+        if (onNewSessionCreated) onNewSessionCreated(sess.id);
+      }
+
+      const data = await sendChatMessage(question, domain === "all" ? null : domain, currentSessionId);
       setMessages((prev) => {
         const next = [...prev];
         next[next.length - 1] = {
@@ -151,6 +178,20 @@ export default function ChatArea() {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button 
+            onClick={onNewChat}
+            style={{ 
+              background: 'transparent', 
+              border: '1px solid rgba(255,255,255,0.2)', 
+              color: 'white', 
+              padding: '6px 12px', 
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            + New Chat
+          </button>
           <select
             id="chat-domain-select"
             className="domain-select"

@@ -34,9 +34,10 @@ export async function ingestDocument(file, domain) {
  * @param {string|null} domain  Pass null to trigger cross-domain search
  * @returns {Promise<{answer: string, citations: string[]}>}
  */
-export async function sendChatMessage(question, domain = null) {
+export async function sendChatMessage(question, domain = null, sessionId = null) {
   const body = { question };
   if (domain && domain !== "all") body.domain = domain;
+  if (sessionId) body.session_id = sessionId;
 
   const response = await fetch(`${API_BASE}/chat/`, {
     method: "POST",
@@ -90,4 +91,33 @@ export async function deleteDocument(filename) {
     } catch {/* ignore parse error */}
     throw new Error(detail);
   }
+}
+
+/**
+ * Fetch all chat sessions.
+ */
+export async function getSessions() {
+  const response = await fetch(`${API_BASE}/sessions/`);
+  if (!response.ok) throw new Error("Could not fetch sessions");
+  return response.json();
+}
+
+/**
+ * Fetch messages for a specific session.
+ */
+export async function getSessionMessages(sessionId) {
+  const response = await fetch(`${API_BASE}/sessions/${encodeURIComponent(sessionId)}`);
+  if (!response.ok) throw new Error("Could not fetch session messages");
+  return response.json();
+}
+
+/**
+ * Create a new chat session.
+ */
+export async function createSession(title) {
+  const response = await fetch(`${API_BASE}/sessions/?title=${encodeURIComponent(title)}`, {
+    method: "POST"
+  });
+  if (!response.ok) throw new Error("Could not create session");
+  return response.json();
 }

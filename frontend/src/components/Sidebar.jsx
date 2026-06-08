@@ -1,14 +1,27 @@
 // src/components/Sidebar.jsx
 import { useState, useEffect, useCallback } from "react";
-import { ingestDocument, fetchDocuments, deleteDocument } from "../api";
+import { ingestDocument, fetchDocuments, deleteDocument, getSessions } from "../api";
 import { INGEST_DOMAINS } from "../constants";
 
-export default function Sidebar({ onUploadSuccess }) {
+export default function Sidebar({ onUploadSuccess, activeSessionId, onSelectSession, refreshTrigger }) {
   const [domain, setDomain] = useState(INGEST_DOMAINS[0].value);
   const [uploadStatus, setUploadStatus] = useState(null); // null | {type, message}
   const [dragActive, setDragActive] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+
+  const loadSessions = useCallback(async () => {
+    try {
+      const data = await getSessions();
+      setSessions(data || []);
+    } catch {
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, []);
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -25,6 +38,10 @@ export default function Sidebar({ onUploadSuccess }) {
   useEffect(() => {
     loadDocuments();
   }, [loadDocuments]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions, refreshTrigger]);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -148,6 +165,38 @@ export default function Sidebar({ onUploadSuccess }) {
             {uploadStatus.type === "error" && "❌"}
             <span>{uploadStatus.message}</span>
           </div>
+        )}
+      </div>
+
+      {/* Chat History Section */}
+      <div className="sidebar-section" style={{ borderBottom: "none", paddingBottom: 0 }}>
+        <p className="sidebar-section-label">💬 Chat History</p>
+      </div>
+
+      <div className="docs-list" style={{ maxHeight: '200px' }}>
+        {loadingSessions ? (
+          <div className="docs-list-empty">Loading…</div>
+        ) : sessions.length === 0 ? (
+          <div className="docs-list-empty">No previous chats.</div>
+        ) : (
+          sessions.map((sess) => (
+            <div 
+              className={`doc-item ${activeSessionId === sess.id ? 'active' : ''}`} 
+              key={sess.id}
+              onClick={() => onSelectSession(sess.id)}
+              style={{ cursor: 'pointer', background: activeSessionId === sess.id ? 'rgba(255,255,255,0.1)' : 'transparent' }}
+            >
+              <span className="doc-item-icon">💭</span>
+              <div className="doc-item-info">
+                <div className="doc-item-name" title={sess.title}>
+                  {sess.title}
+                </div>
+                <div className="doc-item-domain" style={{ fontSize: '10px' }}>
+                  {new Date(sess.created_at).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
 

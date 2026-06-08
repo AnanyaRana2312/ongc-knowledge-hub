@@ -17,14 +17,24 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.config import settings
-from backend.api.routes import chat, ingest, search, documents
+from backend.api.routes import chat, ingest, search, documents, sessions
 from backend.models.ollama_client import health_check
+from backend.db.database import init_db
 
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
 logging.basicConfig(level=settings.log_level.upper())
 logger = logging.getLogger(__name__)
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize the database
+    init_db()
+    yield
+    # Shutdown logic (if any)
 
 # ---------------------------------------------------------------------------
 # FastAPI App
@@ -38,6 +48,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # ---------------------------------------------------------------------------
@@ -62,6 +73,7 @@ app.include_router(chat.router)
 app.include_router(search.router)
 app.include_router(ingest.router)
 app.include_router(documents.router)
+app.include_router(sessions.router)
 
 # ---------------------------------------------------------------------------
 # Core Endpoints

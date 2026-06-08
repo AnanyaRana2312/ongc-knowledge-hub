@@ -10,7 +10,10 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+import uuid
+import json
 from backend.rag.chain import generate_answer
+from backend.db.database import get_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,7 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 class ChatRequest(BaseModel):
     question: str = Field(..., description="The user's question to ask the knowledge base.")
     domain: Optional[str] = Field(None, description="Optional domain constraint. If omitted, dynamically routed.")
+    session_id: Optional[str] = Field(None, description="Optional session ID for conversation memory.")
 
 
 class Citation(BaseModel):
@@ -40,12 +44,24 @@ async def chat(request: ChatRequest):
     Send a natural language question and receive an LLM-generated answer
     grounded in the knowledge base using Retrieval-Augmented Generation (RAG).
     """
-    logger.info(f"Received chat request: question='{request.question}', domain='{request.domain}'")
+    logger.info(f"Received chat request: question='{request.question}', domain='{request.domain}', session_id='{request.session_id}'")
     
     try:
-        result = generate_answer(query=request.question, domain=request.domain)
+        # 1. Fetch chat history if session_id is provided
+        chat_history = []
+        if request.session_id:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT role, content FROM messages WHERE session_id = ? ORDER BY created_at ASC", (request.session_id,))
+            rows = cursor.fetchall()
+            conn.close()
+            for row in rows:
+                chat_history.append({"role": row["role"], "content": row["content"]})
+                
+        # 2. Generate Answer
+        result = generate_answer(query=request.question, domain=request.domain, chat_history=chat_history)
         
-        # Extract metadata into Citations
+        # 3. Extract Citations
         citations = []
         for doc in result.get("source_documents", []):
             citations.append(
@@ -56,6 +72,30 @@ async def chat(request: ChatRequest):
                     chunk_index=doc.metadata.get("chunk_index"),
                 )
             )
+            
+        # 4. Save to Database
+        if request.session_id:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Auto-update title if it's the first message (meaning session is empty)
+            if not chat_history:
+                title = request.question[:50] + ("..." if len(request.question) > 50 else "")
+                cursor.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, request.session_id))
+            
+            # Save user message
+            user_msg_id = str(uuid.uuid4())
+            cursor.execute("INSERT INTO messages (id, session_id, role, content, citations) VALUES (?, ?, ?, ?, ?)", 
+                          (user_msg_id, request.session_id, "user", request.question, "[]"))
+                          
+            # Save assistant message
+            ast_msg_id = str(uuid.uuid4())
+            citations_json = json.dumps([c.model_dump() for c in citations])
+            cursor.execute("INSERT INTO messages (id, session_id, role, content, citations) VALUES (?, ?, ?, ?, ?)", 
+                          (ast_msg_id, request.session_id, "assistant", result["answer"], citations_json))
+                          
+            conn.commit()
+            conn.close()
             
         return ChatResponse(
             answer=result["answer"],

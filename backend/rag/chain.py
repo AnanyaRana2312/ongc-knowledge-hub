@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 RAG_PROMPT_TEMPLATE = """You are a highly knowledgeable and professional assistant for the ONGC Knowledge Hub.
 Your task is to answer the user's question based strictly on the provided context below.
 
+Chat History:
+{chat_history}
+
 Context:
 {context}
 
@@ -26,6 +29,7 @@ Guidelines:
 1. If the answer is not contained within the Context, politely state: "I don't have enough information in the knowledge base to answer this."
 2. Do NOT use outside knowledge or hallucinate information.
 3. Be concise, accurate, and format your response clearly (using bullet points if applicable).
+4. Use the Chat History to understand follow-up questions.
 
 Question: {question}
 
@@ -43,13 +47,14 @@ def format_context(documents: List[Document]) -> str:
     return "\n".join(parts)
 
 
-def generate_answer(query: str, domain: Optional[str] = None) -> dict:
+def generate_answer(query: str, domain: Optional[str] = None, chat_history: Optional[List[dict]] = None) -> dict:
     """
     Execute the RAG pipeline: Retrieve context and generate an answer.
 
     Args:
         query: User's question.
         domain: Optional domain to search in. If None, dynamically routed.
+        chat_history: Optional list of previous messages in the session.
 
     Returns:
         dict with "answer" and "source_documents".
@@ -69,8 +74,19 @@ def generate_answer(query: str, domain: Optional[str] = None) -> dict:
 
     # 2. Format context and prompt
     context_text = format_context(docs)
+    
+    # Format chat history
+    history_text = "No previous history."
+    if chat_history:
+        history_parts = []
+        for msg in chat_history[-5:]: # only last 5 messages to save context window
+            role = "User" if msg["role"] == "user" else "Assistant"
+            history_parts.append(f"{role}: {msg['content']}")
+        history_text = "\n".join(history_parts)
+        
     prompt = PromptTemplate.from_template(RAG_PROMPT_TEMPLATE).format(
         context=context_text,
+        chat_history=history_text,
         question=query
     )
 
