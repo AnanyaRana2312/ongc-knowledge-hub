@@ -103,3 +103,65 @@ def generate_answer(query: str, domain: Optional[str] = None, chat_history: Opti
         "answer": answer,
         "source_documents": docs
     }
+
+
+async def stream_generate_answer(query: str, domain: Optional[str] = None, chat_history: Optional[List[dict]] = None):
+    """
+    Execute the RAG pipeline and yield chunks of the answer asynchronously.
+
+    Yields JSON strings with newlines:
+    {"type": "token", "content": "..."}
+    ...
+    {"type": "citations", "data": [...]}
+    """
+    import json
+    logger.info(f"Streaming answer for query: '{query}' in domain: '{domain}'")
+
+    # 1. Retrieve relevant documents
+    docs = retrieve_documents(query=query, domain=domain, k=5)
+    
+    citations = []
+    for doc in docs:
+        citations.append({
+            "source": doc.metadata.get("source", "unknown"),
+            "page": doc.metadata.get("page"),
+            "domain": doc.metadata.get("domain", "default"),
+            "chunk_index": doc.metadata.get("chunk_index"),
+        })
+
+    if not docs:
+        logger.info("No context retrieved. Falling back to default no-info response.")
+        yield json.dumps({"type": "token", "content": "I don't have enough information in the knowledge base to answer this."}) + "\n"
+        yield json.dumps({"type": "citations", "data": []}) + "\n"
+        return
+
+    # 2. Format context and prompt
+    context_text = format_context(docs)
+    
+    history_text = "No previous history."
+    if chat_history:
+        history_parts = []
+        for msg in chat_history[-5:]: # only last 5 messages
+            role = "User" if msg["role"] == "user" else "Assistant"
+            history_parts.append(f"{role}: {msg['content']}")
+        history_text = "\n".join(history_parts)
+        
+    prompt = PromptTemplate.from_template(RAG_PROMPT_TEMPLATE).format(
+        context=context_text,
+        chat_history=history_text,
+        question=query
+    )
+
+    # 3. Stream answer using LLM
+    try:
+        llm = get_llm()
+        # astream is an async generator returning chunks
+        async for chunk in llm.astream(prompt):
+            yield json.dumps({"type": "token", "content": chunk.content}) + "\n"
+    except Exception as e:
+        logger.error(f"Failed to stream answer via LLM: {e}")
+        yield json.dumps({"type": "token", "content": "\n\nI encountered an error while generating the answer."}) + "\n"
+        
+    # 4. Yield citations at the end
+    yield json.dumps({"type": "citations", "data": citations}) + "\n"
+

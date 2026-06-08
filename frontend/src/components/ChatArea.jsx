@@ -1,6 +1,6 @@
 // src/components/ChatArea.jsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { sendChatMessage, checkHealth, getSessionMessages, createSession } from "../api";
+import { sendChatMessage, streamChatMessage, checkHealth, getSessionMessages, createSession } from "../api";
 import { DOMAINS, SAMPLE_QUESTIONS } from "../constants";
 
 function SendIcon() {
@@ -134,17 +134,36 @@ export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewCh
         if (onNewSessionCreated) onNewSessionCreated(sess.id);
       }
 
-      const data = await sendChatMessage(question, domain === "all" ? null : domain, currentSessionId);
-      setMessages((prev) => {
-        const next = [...prev];
-        next[next.length - 1] = {
-          role: "assistant",
-          content: data.answer,
-          citations: data.citations || [],
-          domain: domain,
-        };
-        return next;
-      });
+      await streamChatMessage(
+        question,
+        domain === "all" ? null : domain,
+        currentSessionId,
+        (chunkText) => {
+          setMessages((prev) => {
+            const next = [...prev];
+            const lastMsg = { ...next[next.length - 1] }; // Create a new object to avoid StrictMode double-mutation
+            if (lastMsg.thinking) {
+              lastMsg.thinking = false;
+              lastMsg.content = chunkText;
+            } else {
+              lastMsg.content += chunkText;
+            }
+            next[next.length - 1] = lastMsg;
+            return next;
+          });
+        },
+        (citationsData) => {
+          setMessages((prev) => {
+            const next = [...prev];
+            const lastMsg = { ...next[next.length - 1] };
+            lastMsg.citations = citationsData || [];
+            lastMsg.domain = domain;
+            next[next.length - 1] = lastMsg;
+            return next;
+          });
+        }
+      );
+      
     } catch (err) {
       setMessages((prev) => {
         const next = [...prev];

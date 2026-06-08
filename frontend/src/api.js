@@ -52,6 +52,61 @@ export async function sendChatMessage(question, domain = null, sessionId = null)
 }
 
 /**
+ * Stream a chat question to the RAG chain.
+ * @param {string} question
+ * @param {string|null} domain
+ * @param {string|null} sessionId
+ * @param {function} onChunk - Callback when a new text chunk arrives
+ * @param {function} onCitations - Callback when citations arrive
+ */
+export async function streamChatMessage(question, domain = null, sessionId = null, onChunk, onCitations) {
+  const body = { question, stream: true };
+  if (domain && domain !== "all") body.domain = domain;
+  if (sessionId) body.session_id = sessionId;
+
+  const response = await fetch(`${API_BASE}/chat/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Chat request failed (${response.status})`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    
+    buffer += decoder.decode(value, { stream: true });
+    
+    // Process full lines
+    const lines = buffer.split("\n");
+    // Keep the last incomplete line in the buffer
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const data = JSON.parse(line);
+        if (data.type === "token") {
+          onChunk(data.content);
+        } else if (data.type === "citations") {
+          onCitations(data.data);
+        }
+      } catch (e) {
+        console.error("Failed to parse chunk", line, e);
+      }
+    }
+  }
+}
+
+/**
  * Fetch the list of all ingested documents.
  * The API returns a flat array of {source, domain} objects.
  * @returns {Promise<Array<{source: string, domain: string}>>}
