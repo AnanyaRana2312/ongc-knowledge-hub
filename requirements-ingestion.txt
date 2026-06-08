@@ -18,4 +18,4 @@ pytesseract>=0.3.10
 Pillow>=10.3.0
 
 # Multi-format document loader (heavy — pulls in onnxruntime, numba, numpy)
-unstructured>=0.14.0
+# unstructured>=0.14.0

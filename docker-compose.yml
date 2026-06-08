@@ -1,34 +1,33 @@
 version: '3.8'
 
 services:
-  # Backend API Service
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./backend:/app
-  #   environment:
-  #     - ENV=development
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: ongc-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - TESSERACT_CMD=tesseract
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
 
-  # Frontend Web Application
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./frontend:/app
-
-  # Vector Database / Postgres Database (uncomment when database choices are finalized)
-  # db:
-  #   image: pgvector/pgvector:pg15
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     POSTGRES_DB: knowledge_hub
-  #     POSTGRES_USER: admin
-  #     POSTGRES_PASSWORD: password
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ongc-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

@@ -60,6 +60,8 @@ app.add_middleware(
         "http://localhost:3000",   # Create React App
         "http://localhost:5173",   # Vite dev server
         "http://127.0.0.1:5173",
+        "http://localhost",        # Nginx Docker frontend
+        "http://127.0.0.1",        # Nginx Docker frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],

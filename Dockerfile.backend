@@ -1,0 +1,32 @@
+# Dockerfile.backend
+FROM python:3.12-slim
+
+# Set environment variables to ensure clean outputs and consistent paths
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+WORKDIR /app
+
+# Install system dependencies
+# gcc and g++ are often needed for compiling some python extensions, sqlite3 for database
+# tesseract-ocr and poppler-utils for document ingestion
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc g++ sqlite3 tesseract-ocr poppler-utils && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies first (caching layer)
+COPY requirements.txt requirements-ingestion.txt ./
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-ingestion.txt
+
+# Copy the rest of the application code
+COPY . .
+
+# Ensure data directory exists
+RUN mkdir -p /app/data
+
+EXPOSE 8000
+
+# Run the FastAPI server
+CMD ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

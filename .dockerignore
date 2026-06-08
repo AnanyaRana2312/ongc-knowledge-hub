@@ -1,0 +1,35 @@
+# Virtual environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Node modules and build output
+node_modules/
+dist/
+build/
+.vite/
+
+# Git
+.git/
+.github/
+
+# IDEs
+.vscode/
+.idea/
+.cursor/
+.gemini/
+
+# Data
+data/
+*.db
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Docker
+docker-compose*.yml
+Dockerfile*

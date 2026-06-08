@@ -44,6 +44,7 @@ data/chroma/
 data/*.pdf
 data/*.docx
 data/*.xlsx
+data/*.db
 *.bin
 *.onnx
 
