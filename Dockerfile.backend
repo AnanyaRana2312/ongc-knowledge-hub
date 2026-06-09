@@ -26,6 +26,11 @@ COPY . .
 # Ensure data directory exists
 RUN mkdir -p /app/data
 
+# Create a non-root user, assign ownership of the /app directory, and switch to it
+RUN groupadd -r appuser && useradd -r -g appuser appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 
 # Run the FastAPI server
