@@ -188,3 +188,39 @@ def list_ingested_documents() -> List[dict]:
         logger.error(f"Failed to list ingested documents from ChromaDB: {e}")
         
     return documents
+
+
+def delete_document(filename: str) -> None:
+    """
+    Delete a document and all its chunks from the vector store across all collections.
+    
+    Args:
+        filename: The source filename of the document to delete.
+    
+    Raises:
+        ValueError: If the document is not found.
+    """
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
+        collections = client.list_collections()
+        
+        deleted = False
+        for c in collections:
+            # Find all chunks with the matching source filename
+            result = c.get(where={"source": filename})
+            ids_to_delete = result.get("ids", [])
+            
+            if ids_to_delete:
+                c.delete(ids=ids_to_delete)
+                logger.info(f"Deleted {len(ids_to_delete)} chunks for '{filename}' from domain '{c.name}'")
+                deleted = True
+                
+        if not deleted:
+            raise ValueError(f"Document '{filename}' not found in any domain.")
+            
+    except ValueError:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete document '{filename}' from ChromaDB: {e}")
+        raise RuntimeError(f"Database error: {e}")
