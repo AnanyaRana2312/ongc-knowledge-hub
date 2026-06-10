@@ -56,10 +56,9 @@ export default function Sidebar({ onUploadSuccess, activeSessionId, onSelectSess
     setUploadStatus({ type: "loading", message: `Uploading "${file.name}"…` });
     try {
       await ingestDocument(file, domain);
-      setUploadStatus({ type: "success", message: `"${file.name}" ingested successfully!` });
-      await loadDocuments();
+      setUploadStatus({ type: "success", message: `"${file.name}" is being processed in the background. It will appear here once finished.` });
       if (onUploadSuccess) onUploadSuccess();
-      setTimeout(() => setUploadStatus(null), 4000);
+      setTimeout(() => setUploadStatus(null), 6000);
     } catch (err) {
       setUploadStatus({ type: "error", message: err.message });
     }

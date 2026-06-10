@@ -10,7 +10,7 @@ import os
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status, BackgroundTasks
 
 from backend.ingestion.pipeline import run_ingestion_pipeline
 from backend.ingestion.ocr import TesseractMissingError
@@ -39,18 +39,35 @@ class DomainEnum(str, enum.Enum):
     health_and_safety = "health and safety"
     instrumentation = "instrumentation"
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
-async def ingest_document(file: UploadFile = File(...), domain: DomainEnum = DomainEnum.safety):
+def background_ingest_and_cleanup(file_path: Path, domain: str, filename: str):
+    """Run ingestion in the background and clean up the file afterwards."""
+    try:
+        logger.info(f"Starting background ingestion for '{filename}'")
+        run_ingestion_pipeline(str(file_path), domain)
+        logger.info(f"Background ingestion completed for '{filename}'")
+    except Exception as exc:
+        logger.error(f"Background ingestion failed for '{filename}': {exc}")
+    finally:
+        if file_path.exists():
+            try:
+                os.remove(file_path)
+                logger.debug(f"Cleaned up temporary upload file: {file_path}")
+            except Exception as cleanup_err:
+                logger.warning(f"Failed to delete temp file '{file_path}': {cleanup_err}")
+
+@router.post("/", status_code=status.HTTP_202_ACCEPTED)
+async def ingest_document(background_tasks: BackgroundTasks, file: UploadFile = File(...), domain: DomainEnum = DomainEnum.safety):
     """
     Upload a document (PDF, DOCX, or plain text) for processing and indexing
-    into the ChromaDB vector store under a specific domain.
+    into the ChromaDB vector store under a specific domain. The processing
+    happens in the background so the upload returns immediately.
 
     Args:
         file: The file to ingest.
         domain: Target knowledge base category/namespace.
 
     Returns:
-        Ingestion summary (filename, domain, chunk count, loaders, and status).
+        Immediate processing status.
     """
     # 1. Create temporary directory if it doesn't exist
     TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -66,33 +83,24 @@ async def ingest_document(file: UploadFile = File(...), domain: DomainEnum = Dom
         with temp_file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 4. Run the ingestion orchestrator
-        summary = run_ingestion_pipeline(str(temp_file_path), domain.value)
-        return summary
+        # 4. Enqueue the ingestion orchestrator as a background task
+        background_tasks.add_task(background_ingest_and_cleanup, temp_file_path, domain.value, filename)
+        
+        return {
+            "filename": filename,
+            "domain": domain.value,
+            "status": "processing",
+            "message": "Document is being processed in the background."
+        }
 
-    except ValueError as val_err:
-        logger.warning(f"Validation error during ingestion of '{filename}': {val_err}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(val_err)
-        )
-    except TesseractMissingError as tess_err:
-        logger.error(f"OCR dependency missing: {tess_err}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(tess_err)
-        )
     except Exception as exc:
         logger.exception(f"Unexpected error processing upload '{filename}': {exc}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process and index document: {exc}"
-        )
-    finally:
-        # 5. Safely clean up the temporary file
         if temp_file_path.exists():
             try:
                 os.remove(temp_file_path)
-                logger.debug(f"Cleaned up temporary upload file: {temp_file_path}")
-            except Exception as cleanup_err:
-                logger.warning(f"Failed to delete temp file '{temp_file_path}': {cleanup_err}")
+            except Exception:
+                pass
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to queue document: {exc}"
+        )

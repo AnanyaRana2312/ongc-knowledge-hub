@@ -54,13 +54,15 @@ def is_scanned_pdf(file_path: str, min_chars_per_page: int = 50) -> bool:
             return True  # Empty PDF is treated as scanned/empty
 
         total_chars = 0
-        for page in reader.pages:
+        pages_to_check = min(5, num_pages)
+        for i in range(pages_to_check):
+            page = reader.pages[i]
             text = page.extract_text() or ""
             total_chars += len(text.strip())
 
-        avg_chars = total_chars / num_pages
+        avg_chars = total_chars / pages_to_check
         logger.info(
-            f"PDF {path.name}: total_chars={total_chars}, pages={num_pages}, "
+            f"PDF {path.name}: total_chars={total_chars} (first {pages_to_check} pages), "
             f"avg_chars_per_page={avg_chars:.1f} (threshold={min_chars_per_page})"
         )
         return avg_chars < min_chars_per_page
