@@ -96,9 +96,17 @@ def add_documents_to_store(documents: List[Document], domain: str) -> None:
         return
 
     vector_store = get_vector_store(domain)
-    vector_store.add_documents(documents)
+    
+    # Process in batches to avoid Ollama / Chroma payload limits
+    batch_size = 50
+    total_docs = len(documents)
+    
+    for i in range(0, total_docs, batch_size):
+        batch = documents[i:i+batch_size]
+        logger.info(f"Adding batch {i//batch_size + 1} of {(total_docs + batch_size - 1)//batch_size} ({len(batch)} chunks) to domain '{domain}'...")
+        vector_store.add_documents(batch)
 
-    logger.info(f"Successfully added {len(documents)} document chunk(s) to domain '{domain}'")
+    logger.info(f"Successfully added {total_docs} document chunk(s) to domain '{domain}'")
 
 
 def similarity_search(query: str, domain: str, k: int = 5) -> List[Document]:

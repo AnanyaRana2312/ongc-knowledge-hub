@@ -115,10 +115,20 @@ async def stream_generate_answer(query: str, domain: Optional[str] = None, chat_
     {"type": "citations", "data": [...]}
     """
     import json
+    import asyncio
     logger.info(f"Streaming answer for query: '{query}' in domain: '{domain}'")
+    
+    # Send an initial empty token to force FastAPI to flush headers and prevent browser timeout
+    yield json.dumps({"type": "token", "content": ""}) + "\n"
+    await asyncio.sleep(0.1)
 
     # 1. Retrieve relevant documents
-    docs = retrieve_documents(query=query, domain=domain, k=5)
+    # Run synchronously blocking retriever in a thread to prevent freezing the FastAPI event loop
+    docs = await asyncio.to_thread(retrieve_documents, query=query, domain=domain, k=5)
+    
+    # Yield another keep-alive after retrieval
+    yield json.dumps({"type": "token", "content": ""}) + "\n"
+    await asyncio.sleep(0.1)
     
     citations = []
     for doc in docs:
