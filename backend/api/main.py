@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.config import settings
-from backend.api.routes import chat, ingest, search, documents, sessions
+from backend.api.routes import chat, ingest, search, documents, sessions, draft
 from backend.models.ollama_client import health_check
 from backend.db.database import init_db
 
@@ -52,12 +52,6 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# Monitoring (Prometheus)
-# ---------------------------------------------------------------------------
-from prometheus_fastapi_instrumentator import Instrumentator
-Instrumentator().instrument(app).expose(app)
-
-# ---------------------------------------------------------------------------
 # Middleware
 # ---------------------------------------------------------------------------
 app.add_middleware(
@@ -82,6 +76,7 @@ app.include_router(search.router)
 app.include_router(ingest.router)
 app.include_router(documents.router)
 app.include_router(sessions.router)
+app.include_router(draft.router)
 
 # ---------------------------------------------------------------------------
 # Core Endpoints
@@ -109,3 +104,10 @@ async def health():
         "ollama": "reachable" if ollama_ok else "unreachable",
         "model": settings.ollama_model,
     }
+
+# ---------------------------------------------------------------------------
+# Monitoring (Prometheus)
+# ---------------------------------------------------------------------------
+# from prometheus_fastapi_instrumentator import Instrumentator
+# Instrumentator().instrument(app).expose(app)
+

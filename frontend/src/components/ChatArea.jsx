@@ -12,6 +12,65 @@ function SendIcon() {
   );
 }
 
+import ReactMarkdown from "react-markdown";
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, ScatterChart, Scatter,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
+} from "recharts";
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+function CustomCodeRenderer({ node, inline, className, children, ...props }) {
+  const match = /language-(\w+)/.exec(className || '');
+  if (!inline && match && match[1] === 'json') {
+    try {
+      const data = JSON.parse(String(children).replace(/\n$/, ''));
+      if (data.chart_type && data.data) {
+        return (
+          <div style={{ width: '100%', height: 300, background: '#1e1e1e', padding: 20, borderRadius: 8, marginTop: 10 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              {data.chart_type === 'bar' ? (
+                <BarChart data={data.data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis dataKey="name" stroke="#ccc" />
+                  <YAxis stroke="#ccc" />
+                  <Tooltip contentStyle={{ background: '#333', border: 'none' }} />
+                  <Legend />
+                  <Bar dataKey="value" fill="#8884d8" />
+                </BarChart>
+              ) : data.chart_type === 'line' ? (
+                <LineChart data={data.data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis dataKey="name" stroke="#ccc" />
+                  <YAxis stroke="#ccc" />
+                  <Tooltip contentStyle={{ background: '#333', border: 'none' }} />
+                  <Legend />
+                  <Line type="monotone" dataKey="value" stroke="#82ca9d" />
+                </LineChart>
+              ) : data.chart_type === 'pie' ? (
+                <PieChart>
+                  <Pie data={data.data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                    {data.data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: '#333', border: 'none' }} />
+                  <Legend />
+                </PieChart>
+              ) : (
+                <pre className={className} {...props}>{children}</pre>
+              )}
+            </ResponsiveContainer>
+          </div>
+        );
+      }
+    } catch (e) {
+      // Not a chart JSON, fallback
+    }
+  }
+  return <code className={className} {...props}>{children}</code>;
+}
+
 function Message({ msg }) {
   const isUser = msg.role === "user";
   return (
@@ -28,7 +87,17 @@ function Message({ msg }) {
           </div>
         ) : (
           <>
-            <div className="message-bubble">{msg.content}</div>
+            <div className="message-bubble">
+              {isUser ? (
+                msg.content
+              ) : (
+                <ReactMarkdown
+                  components={{ code: CustomCodeRenderer }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              )}
+            </div>
             {!isUser && msg.domain && msg.domain !== "all" && (
               <span className="domain-badge">🗂️ {msg.domain.replace(/_/g, " ")}</span>
             )}

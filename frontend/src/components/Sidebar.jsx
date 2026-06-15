@@ -167,6 +167,42 @@ export default function Sidebar({ onUploadSuccess, activeSessionId, onSelectSess
         )}
       </div>
 
+      {/* Draft Report Section */}
+      <div className="sidebar-section">
+        <p className="sidebar-section-label">📝 Draft Report</p>
+        <button 
+          className="welcome-chip" 
+          style={{ width: "100%", justifyContent: "center", background: "rgba(255,255,255,0.05)" }}
+          onClick={() => {
+            const topic = window.prompt("Enter report topic (e.g., 'Draft a safety manual as a PDF'):");
+            if (!topic) return;
+            const draftDomain = window.prompt("Enter domain (e.g., 'all', 'annual_reports'):", "all");
+            
+            setUploadStatus({ type: "loading", message: "Drafting document..." });
+            import('../api').then(({ draftDocument }) => {
+              draftDocument(topic, draftDomain)
+                .then(({ blob, filename }) => {
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  a.remove();
+                  setUploadStatus({ type: "success", message: "Draft downloaded!" });
+                  setTimeout(() => setUploadStatus(null), 4000);
+                })
+                .catch(err => {
+                  setUploadStatus({ type: "error", message: err.message });
+                });
+            });
+          }}
+        >
+          ✨ Generate Document
+        </button>
+      </div>
+
       {/* Chat History Section */}
       <div className="sidebar-section" style={{ borderBottom: "none", paddingBottom: 0 }}>
         <p className="sidebar-section-label">💬 Chat History</p>

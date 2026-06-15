@@ -12,7 +12,7 @@ WORKDIR /app
 # gcc and g++ are often needed for compiling some python extensions, sqlite3 for database
 # tesseract-ocr and poppler-utils for document ingestion
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc g++ sqlite3 tesseract-ocr poppler-utils && \
+    apt-get install -y --no-install-recommends gcc g++ sqlite3 tesseract-ocr poppler-utils pkg-config libcairo2-dev libpango1.0-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies first (caching layer)

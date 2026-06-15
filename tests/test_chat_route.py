@@ -35,7 +35,7 @@ def test_chat_endpoint_success(mock_generate):
     assert data["citations"][0]["page"] == 5
     assert data["citations"][0]["chunk_index"] == 2
     
-    mock_generate.assert_called_once_with(query="Test question?", domain="drilling")
+    mock_generate.assert_called_once_with(query="Test question?", domain="drilling", chat_history=[])
 
 
 @patch("backend.api.routes.chat.generate_answer")
@@ -51,7 +51,7 @@ def test_chat_endpoint_no_domain(mock_generate):
     )
     
     assert response.status_code == status.HTTP_200_OK
-    mock_generate.assert_called_once_with(query="Test question?", domain=None)
+    mock_generate.assert_called_once_with(query="Test question?", domain=None, chat_history=[])
 
 
 def test_chat_endpoint_missing_question():

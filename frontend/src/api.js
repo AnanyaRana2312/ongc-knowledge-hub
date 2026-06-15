@@ -176,3 +176,39 @@ export async function createSession(title) {
   if (!response.ok) throw new Error("Could not create session");
   return response.json();
 }
+
+/**
+ * Request a generated draft document.
+ * Returns a blob which can be downloaded.
+ */
+export async function draftDocument(topic, domain) {
+  const body = { topic };
+  if (domain && domain !== "all") body.domain = domain;
+
+  const response = await fetch(`${API_BASE}/draft/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    let detail = `Draft failed (${response.status})`;
+    try {
+      const err = await response.json();
+      detail = err.detail || JSON.stringify(err);
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+
+  // Get filename from Content-Disposition header if possible
+  let filename = "draft_report.docx";
+  const disposition = response.headers.get("Content-Disposition");
+  if (disposition && disposition.includes("filename=")) {
+    filename = disposition.split("filename=")[1].replace(/"/g, "");
+  } else if (response.headers.get("Content-Type") === "application/pdf") {
+    filename = "draft_report.pdf";
+  }
+
+  const blob = await response.blob();
+  return { blob, filename };
+}

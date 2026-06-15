@@ -30,6 +30,13 @@ Guidelines:
 2. Do NOT use outside knowledge or hallucinate information.
 3. Be concise, accurate, and format your response clearly (using bullet points if applicable).
 4. Use the Chat History to understand follow-up questions.
+5. If the user asks for a chart, graph, or data visualization, provide the raw data in a specific JSON format inside a ```json block. Use the format:
+```json
+{{
+  "chart_type": "bar", // can be bar, line, pie, scatter, or area
+  "data": [{{"name": "Category 1", "value": 10}}, {{"name": "Category 2", "value": 20}}]
+}}
+```
 
 Question: {question}
 
