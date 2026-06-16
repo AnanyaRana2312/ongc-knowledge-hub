@@ -54,7 +54,7 @@ def format_context(documents: List[Document]) -> str:
     return "\n".join(parts)
 
 
-def generate_answer(query: str, domain: Optional[str] = None, chat_history: Optional[List[dict]] = None) -> dict:
+def generate_answer(query: str, domain: Optional[str] = None, chat_history: Optional[List[dict]] = None, search_query: Optional[str] = None) -> dict:
     """
     Execute the RAG pipeline: Retrieve context and generate an answer.
 
@@ -62,6 +62,7 @@ def generate_answer(query: str, domain: Optional[str] = None, chat_history: Opti
         query: User's question.
         domain: Optional domain to search in. If None, dynamically routed.
         chat_history: Optional list of previous messages in the session.
+        search_query: Optional overrides the query used for retrieval.
 
     Returns:
         dict with "answer" and "source_documents".
@@ -70,7 +71,8 @@ def generate_answer(query: str, domain: Optional[str] = None, chat_history: Opti
 
     # 1. Retrieve relevant documents
     # The retriever dynamically routes if domain is None
-    docs = retrieve_documents(query=query, domain=domain, k=5)
+    retrieval_query = search_query if search_query is not None else query
+    docs = retrieve_documents(query=retrieval_query, domain=domain, k=5)
 
     if not docs:
         logger.info("No context retrieved. Falling back to default no-info response.")
@@ -112,7 +114,7 @@ def generate_answer(query: str, domain: Optional[str] = None, chat_history: Opti
     }
 
 
-async def stream_generate_answer(query: str, domain: Optional[str] = None, chat_history: Optional[List[dict]] = None):
+async def stream_generate_answer(query: str, domain: Optional[str] = None, chat_history: Optional[List[dict]] = None, search_query: Optional[str] = None):
     """
     Execute the RAG pipeline and yield chunks of the answer asynchronously.
 
@@ -131,7 +133,8 @@ async def stream_generate_answer(query: str, domain: Optional[str] = None, chat_
 
     # 1. Retrieve relevant documents
     # Run synchronously blocking retriever in a thread to prevent freezing the FastAPI event loop
-    docs = await asyncio.to_thread(retrieve_documents, query=query, domain=domain, k=5)
+    retrieval_query = search_query if search_query is not None else query
+    docs = await asyncio.to_thread(retrieve_documents, query=retrieval_query, domain=domain, k=5)
     
     # Yield another keep-alive after retrieval
     yield json.dumps({"type": "token", "content": ""}) + "\n"

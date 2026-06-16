@@ -111,7 +111,8 @@ async def create_draft(request: DraftRequest):
         markdown_text = ""
         async for chunk_str in stream_generate_answer(
             query=draft_query,
-            domain=request.domain if request.domain and request.domain != "all" else None
+            domain=request.domain if request.domain and request.domain != "all" else None,
+            search_query=request.topic
         ):
             try:
                 chunk_dict = json.loads(chunk_str.strip())
