@@ -62,6 +62,96 @@ Contains unit tests, integration tests, API simulation test runners, and automat
 
 ---
 
-## 🚀 Quick Start (Placeholder)
+## 🚀 Quick Start & Deployment Guide
 
-Detailed bootstrap and operational steps will be provided here as implementation begins.
+Follow these steps to clone, configure, run, and access the ONGC Knowledge Hub application locally.
+
+### 📋 Prerequisites
+
+Before starting, ensure you have the following installed on your machine:
+* **Git**
+* **Docker & Docker Compose**
+* **Ollama** (for local LLM execution — download from [ollama.com](https://ollama.com))
+
+---
+
+### 📥 1. Clone the Repository
+
+Clone the project repository to your local machine and navigate into the root directory:
+```bash
+git clone https://github.com/AnanyaRana2312/ongc-knowledge-hub.git
+cd ongc-knowledge-hub
+```
+
+---
+
+### ⚙️ 2. Environment Configuration
+
+Copy the example configuration file to create your local `.env` file:
+```bash
+cp .env.example .env
+```
+Inside the `.env` file, the defaults are optimized for local hardware (e.g. 4GB GPUs):
+* `OLLAMA_MODEL=llama3.2` (Modern 3B parameter model, optimized for VRAM)
+* `OLLAMA_EMBEDDING_MODEL=nomic-embed-text` (Vector embeddings model)
+* `OLLAMA_BASE_URL=http://localhost:11434` (Ollama host URL)
+
+---
+
+### 🦙 3. Setup Ollama & Pull Models
+
+1. **Start the Ollama application** on your host machine.
+2. **Download the models**: Open your terminal or PowerShell and pull the LLM and embedding models specified in the `.env` file:
+   ```bash
+   ollama pull llama3.2
+   ollama pull nomic-embed-text
+   ```
+
+> [!TIP]
+> **Disk Space / VRAM Optimization on Windows:**
+> If your `C:` drive is running low on space, you can redirect Ollama to save all models to another drive (e.g. `D:`) by setting the `OLLAMA_MODELS` environment variable in PowerShell:
+> ```powershell
+> [Environment]::SetEnvironmentVariable("OLLAMA_MODELS", "D:\OllamaModels", "User")
+> ```
+> *Make sure to restart the Ollama application after running this command to apply the changes.*
+
+---
+
+### 🐳 4. Launch the Application
+
+Build and launch all application containers (Backend, Frontend, and Monitoring services) in the background:
+```bash
+docker compose up --build -d
+```
+This command builds the images and spins up the multi-container environment.
+
+---
+
+### 🌐 5. Accessing the Services
+
+Once the containers are running, you can access the different components of the system at the following URLs:
+
+| Service | URL | Description |
+| :--- | :--- | :--- |
+| **Frontend UI** | [http://localhost](http://localhost) | Main React/Vite interface for chat & document drafting. |
+| **Backend API** | [http://localhost:8000](http://localhost:8000) | FastAPI server endpoints and interactive Swagger docs at `/docs`. |
+| **Grafana** | [http://localhost:3000](http://localhost:3000) | System dashboard and performance metrics. |
+| **Prometheus** | [http://localhost:9090](http://localhost:9090) | Time-series database containing metrics scrape data. |
+
+---
+
+### 🧪 6. Running Tests
+
+To verify that the backend services, retriever, and RAG pipelines are working correctly inside the Docker container, run the test suite:
+```bash
+docker compose exec backend pytest
+```
+
+---
+
+### 🛑 Stopping the Application
+
+To shut down all running services and containers, run:
+```bash
+docker compose down
+```
