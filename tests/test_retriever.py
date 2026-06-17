@@ -49,3 +49,21 @@ def test_retrieve_documents_dynamic_routing_no_domains(mock_list, mock_search):
 
     mock_list.assert_called_once()
     mock_search.assert_called_once_with("query about nothing", "default", k=2)
+
+
+@patch("backend.rag.retriever.similarity_search_with_score")
+@patch("backend.rag.retriever.list_active_domains")
+def test_retrieve_documents_cross_domain_all(mock_list, mock_search_score):
+    mock_list.return_value = ["drilling", "safety"]
+    mock_search_score.side_effect = [
+        [(Document(page_content="drilling doc", metadata={"domain": "drilling"}), 0.3)],
+        [(Document(page_content="safety doc", metadata={"domain": "safety"}), 0.1)]
+    ]
+
+    results = retrieve_documents("safety query", domain="all", k=1)
+
+    mock_list.assert_called_once()
+    assert mock_search_score.call_count == 2
+    assert len(results) == 1
+    # Check that it sorted by score ascending, so safety doc (score 0.1) is returned first
+    assert results[0].page_content == "safety doc"

@@ -24,10 +24,14 @@ def get_llm() -> ChatOllama:
     Return a cached ChatOllama instance configured from environment settings.
     Using lru_cache ensures the model client is only initialised once per process.
     """
+    kwargs = {}
+    if settings.ollama_num_gpu is not None:
+        kwargs["num_gpu"] = settings.ollama_num_gpu
     return ChatOllama(
         model=settings.ollama_model,
         base_url=settings.ollama_base_url,
         timeout=settings.ollama_timeout,
+        **kwargs
     )
 
 

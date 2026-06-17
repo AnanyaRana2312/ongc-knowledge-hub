@@ -69,17 +69,26 @@ async def ingest_document(background_tasks: BackgroundTasks, file: UploadFile = 
     Returns:
         Immediate processing status.
     """
-    # 1. Create temporary directory if it doesn't exist
+    # 1. Validate file extension synchronously
+    filename = Path(file.filename).name
+    suffix = Path(filename).suffix.lower()
+    supported_extensions = [".pdf", ".docx", ".doc", ".txt"]
+    if suffix not in supported_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type: '{suffix}'. Supported: {supported_extensions}"
+        )
+
+    # 2. Create temporary directory if it doesn't exist
     TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 2. Define safe temporary file path
-    filename = Path(file.filename).name
+    # 3. Define safe temporary file path
     temp_file_path = TEMP_UPLOAD_DIR / filename
 
     logger.info(f"Received file upload '{filename}' for domain '{domain.value}'")
 
     try:
-        # 3. Write uploaded file to disk
+        # 4. Write uploaded file to disk
         with temp_file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 

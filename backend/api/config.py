@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3"
     ollama_embedding_model: str = "nomic-embed-text"
     ollama_timeout: int = 120
+    ollama_num_gpu: int | None = None
 
     # ChromaDB
     chroma_persist_dir: str = "./data/chroma"

@@ -15,6 +15,7 @@ from backend.rag.vector_store import (
     similarity_search_with_score,
     list_active_domains,
 )
+from backend.rag.router import classify_query_domain
 
 logger = logging.getLogger(__name__)
 
@@ -23,16 +24,18 @@ def retrieve_documents(query: str, domain: str | None = None, k: int = 5) -> Lis
     """
     Retrieve matching document chunks from ChromaDB.
 
-    If domain is None or 'default', performs cross-domain search across
-    all active collections and returns the globally best matches by score.
-    If domain is specified, searches only that collection.
+    - If domain is 'all': performs cross-domain search across all active collections
+      and returns the globally best matches by score.
+    - If domain is None or 'default': dynamically routes to the most relevant
+      active collection using LLM classification.
+    - If a specific domain is specified: searches only that collection.
     """
-    if not domain or domain == "default":
+    if domain == "all":
         active_domains = list_active_domains()
-        active_domains = [d for d in active_domains if d and d != "default"]
+        active_domains = [d for d in active_domains if d and d != "default" and d != "all"]
 
         if not active_domains:
-            logger.info("No active domains found. Trying 'default'.")
+            logger.info("No active domains found for cross-domain search. Trying 'default'.")
             try:
                 return similarity_search(query, "default", k=k)
             except Exception as e:
@@ -59,6 +62,27 @@ def retrieve_documents(query: str, domain: str | None = None, k: int = 5) -> Lis
         top_k = all_results[:k]
         logger.info(f"Top-{k} scores: {[round(s, 4) for _, s in top_k]}")
         return [doc for doc, _ in top_k]
+
+    elif not domain or domain == "default":
+        active_domains = list_active_domains()
+        # Filter out default or empty domains
+        active_domains = [d for d in active_domains if d and d != "default" and d != "all"]
+
+        if active_domains:
+            try:
+                routed_domain = classify_query_domain(query, active_domains)
+                logger.info(f"Dynamically routed query '{query}' to domain: '{routed_domain}'")
+                return similarity_search(query, routed_domain, k=k)
+            except Exception as e:
+                logger.error(f"Failed dynamic routing: {e}. Falling back to 'default'.")
+                # fall through to default
+        
+        logger.info("No active specific domains found for routing or classification failed. Using 'default'.")
+        try:
+            return similarity_search(query, "default", k=k)
+        except Exception as e:
+            logger.error(f"Failed to retrieve from 'default': {e}")
+            return []
 
     else:
         logger.info(f"Single-domain search in '{domain}' (k={k}) for: '{query}'")

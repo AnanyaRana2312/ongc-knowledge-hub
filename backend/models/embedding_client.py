@@ -26,7 +26,11 @@ def get_embeddings() -> OllamaEmbeddings:
 
     Uses the dedicated embedding model (default: nomic-embed-text) in Ollama.
     """
+    kwargs = {}
+    if settings.ollama_num_gpu is not None:
+        kwargs["num_gpu"] = settings.ollama_num_gpu
     return OllamaEmbeddings(
         model=settings.ollama_embedding_model,
         base_url=settings.ollama_base_url,
+        **kwargs
     )
