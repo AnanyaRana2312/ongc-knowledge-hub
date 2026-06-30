@@ -25,7 +25,8 @@ function CustomCodeRenderer({ node, inline, className, children, ...props }) {
   if (!inline && match && match[1] === 'json') {
     try {
       const data = JSON.parse(String(children).replace(/\n$/, ''));
-      if (data.chart_type && data.data) {
+      const supportedCharts = ['bar', 'line', 'pie'];
+      if (data.chart_type && supportedCharts.includes(data.chart_type) && data.data) {
         return (
           <div style={{ width: '100%', height: 300, background: '#1e1e1e', padding: 20, borderRadius: 8, marginTop: 10 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -47,7 +48,7 @@ function CustomCodeRenderer({ node, inline, className, children, ...props }) {
                   <Legend />
                   <Line type="monotone" dataKey="value" stroke="#82ca9d" />
                 </LineChart>
-              ) : data.chart_type === 'pie' ? (
+              ) : (
                 <PieChart>
                   <Pie data={data.data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                     {data.data.map((entry, index) => (
@@ -57,8 +58,6 @@ function CustomCodeRenderer({ node, inline, className, children, ...props }) {
                   <Tooltip contentStyle={{ background: '#333', border: 'none' }} />
                   <Legend />
                 </PieChart>
-              ) : (
-                <pre className={className} {...props}>{children}</pre>
               )}
             </ResponsiveContainer>
           </div>
