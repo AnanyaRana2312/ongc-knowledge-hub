@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: ongc-cadvisor
     volumes:
       - /:/rootfs:ro
