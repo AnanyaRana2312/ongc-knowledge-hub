@@ -416,6 +416,25 @@ body {
   text-transform: capitalize;
 }
 
+.session-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
+.doc-item:hover .session-actions {
+  opacity: 1;
+}
+
+.session-actions button {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.session-actions button:hover {
+  transform: scale(1.1);
+}
+
 /* ── Main Chat Area ── */
 .main-area {
   flex: 1;
@@ -799,4 +818,34 @@ body {
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
+}
+
+.stop-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.stop-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--color-bg-elevated);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.stop-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: white;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }

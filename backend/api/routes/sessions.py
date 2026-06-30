@@ -18,6 +18,10 @@ class SessionInfo(BaseModel):
     created_at: str
 
 
+class SessionUpdate(BaseModel):
+    title: str
+
+
 class Citation(BaseModel):
     source: str
     page: Optional[int] = None
@@ -105,3 +109,22 @@ async def delete_session(session_id: str):
         
     conn.commit()
     conn.close()
+
+
+@router.patch("/{session_id}", response_model=SessionInfo)
+async def update_session(session_id: str, update_data: SessionUpdate):
+    """Rename/update a chat session title."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE sessions SET title = ? WHERE id = ?", (update_data.title, session_id))
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Session not found")
+    conn.commit()
+    
+    # Fetch updated session
+    cursor.execute("SELECT id, title, created_at FROM sessions WHERE id = ?", (session_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    return SessionInfo(**dict(row))

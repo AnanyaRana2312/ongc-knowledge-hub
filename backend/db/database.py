@@ -15,6 +15,7 @@ def get_db_connection():
     """Returns a connected SQLite database connection."""
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 

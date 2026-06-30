@@ -135,6 +135,15 @@ export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewCh
   const [apiOnline, setApiOnline] = useState(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+  };
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -193,6 +202,9 @@ export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewCh
     setMessages((prev) => [...prev, userMsg, thinkingMsg]);
     setLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       let currentSessionId = activeSessionId;
       if (!currentSessionId) {
@@ -229,10 +241,15 @@ export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewCh
             next[next.length - 1] = lastMsg;
             return next;
           });
-        }
+        },
+        controller.signal
       );
       
     } catch (err) {
+      if (err.name === "AbortError" || err.message?.includes("aborted")) {
+        // Suppress print since abort is user-intended
+        return;
+      }
       setMessages((prev) => {
         const next = [...prev];
         next[next.length - 1] = {
@@ -243,6 +260,7 @@ export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewCh
         return next;
       });
     } finally {
+      abortControllerRef.current = null;
       setLoading(false);
     }
   };
@@ -342,6 +360,13 @@ export default function ChatArea({ activeSessionId, onNewSessionCreated, onNewCh
 
       {/* Input */}
       <div className="chat-input-area">
+        {loading && (
+          <div className="stop-button-container">
+            <button type="button" className="stop-button" onClick={handleStop}>
+              ⏹️ Stop Generating
+            </button>
+          </div>
+        )}
         <div className="chat-input-wrapper">
           <textarea
             id="chat-input"

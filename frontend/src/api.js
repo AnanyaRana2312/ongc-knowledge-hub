@@ -59,7 +59,7 @@ export async function sendChatMessage(question, domain = null, sessionId = null)
  * @param {function} onChunk - Callback when a new text chunk arrives
  * @param {function} onCitations - Callback when citations arrive
  */
-export async function streamChatMessage(question, domain = null, sessionId = null, onChunk, onCitations) {
+export async function streamChatMessage(question, domain = null, sessionId = null, onChunk, onCitations, signal = null) {
   const body = { question, stream: true };
   if (domain && domain !== "all") body.domain = domain;
   if (sessionId) body.session_id = sessionId;
@@ -68,6 +68,7 @@ export async function streamChatMessage(question, domain = null, sessionId = nul
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   
   if (!response.ok) {
@@ -211,4 +212,27 @@ export async function draftDocument(topic, domain) {
 
   const blob = await response.blob();
   return { blob, filename };
+}
+
+/**
+ * Delete a session and all its messages.
+ */
+export async function deleteSession(sessionId) {
+  const response = await fetch(`${API_BASE}/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Could not delete session");
+}
+
+/**
+ * Rename/update a session title.
+ */
+export async function renameSession(sessionId, title) {
+  const response = await fetch(`${API_BASE}/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) throw new Error("Could not rename session");
+  return response.json();
 }

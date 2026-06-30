@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import { useState, useEffect, useCallback } from "react";
-import { ingestDocument, fetchDocuments, deleteDocument, getSessions } from "../api";
+import { ingestDocument, fetchDocuments, deleteDocument, getSessions, deleteSession, renameSession } from "../api";
 import { INGEST_DOMAINS } from "../constants";
 
 export default function Sidebar({ onUploadSuccess, activeSessionId, onSelectSession, refreshTrigger }) {
@@ -78,6 +78,34 @@ export default function Sidebar({ onUploadSuccess, activeSessionId, onSelectSess
       setTimeout(() => setUploadStatus(null), 4000);
     } catch (err) {
       setUploadStatus({ type: "error", message: err.message });
+    }
+  };
+
+  const handleDeleteSession = async (e, sessionId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this chat session? All its messages will be lost.")) {
+      return;
+    }
+    try {
+      await deleteSession(sessionId);
+      if (activeSessionId === sessionId) {
+        onSelectSession(null);
+      }
+      loadSessions();
+    } catch (err) {
+      alert(`Failed to delete session: ${err.message}`);
+    }
+  };
+
+  const handleRenameSession = async (e, sessionId, currentTitle) => {
+    e.stopPropagation();
+    const newTitle = window.prompt("Enter new chat title:", currentTitle);
+    if (!newTitle || !newTitle.trim()) return;
+    try {
+      await renameSession(sessionId, newTitle.trim());
+      loadSessions();
+    } catch (err) {
+      alert(`Failed to rename session: ${err.message}`);
     }
   };
 
@@ -229,6 +257,36 @@ export default function Sidebar({ onUploadSuccess, activeSessionId, onSelectSess
                 <div className="doc-item-domain" style={{ fontSize: '10px' }}>
                   {new Date(sess.created_at).toLocaleString()}
                 </div>
+              </div>
+              <div className="session-actions" style={{ display: 'flex', gap: '4px' }}>
+                <button 
+                  onClick={(e) => handleRenameSession(e, sess.id, sess.title)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px',
+                    lineHeight: 1
+                  }}
+                  title="Rename chat"
+                >
+                  ✏️
+                </button>
+                <button 
+                  onClick={(e) => handleDeleteSession(e, sess.id)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px',
+                    lineHeight: 1
+                  }}
+                  title="Delete chat"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
           ))

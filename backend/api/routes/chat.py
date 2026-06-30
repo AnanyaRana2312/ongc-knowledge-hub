@@ -5,6 +5,7 @@ Chat / Q&A endpoint — stub for Week 2 RAG integration.
 """
 
 import logging
+import asyncio
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, status
@@ -86,20 +87,26 @@ async def chat(request: ChatRequest):
             async def streaming_generator():
                 full_answer = ""
                 citations_data = []
-                async for chunk_str in stream_generate_answer(query=request.question, domain=request.domain, chat_history=chat_history):
-                    try:
-                        chunk_dict = json.loads(chunk_str.strip())
-                        if chunk_dict.get("type") == "token":
-                            full_answer += chunk_dict.get("content", "")
-                        elif chunk_dict.get("type") == "citations":
-                            citations_data = chunk_dict.get("data", [])
-                    except json.JSONDecodeError:
-                        pass
+                try:
+                    async for chunk_str in stream_generate_answer(query=request.question, domain=request.domain, chat_history=chat_history):
+                        try:
+                            chunk_dict = json.loads(chunk_str.strip())
+                            if chunk_dict.get("type") == "token":
+                                full_answer += chunk_dict.get("content", "")
+                            elif chunk_dict.get("type") == "citations":
+                                citations_data = chunk_dict.get("data", [])
+                        except json.JSONDecodeError:
+                            pass
+                        
+                        yield chunk_str
                     
-                    yield chunk_str
-                
-                # Stream finished, save to DB
-                save_to_db(full_answer, citations_data)
+                    # Stream finished, save to DB
+                    save_to_db(full_answer, citations_data)
+                except (GeneratorExit, asyncio.CancelledError):
+                    logger.info("Streaming connection cancelled by client. Saving partial response.")
+                    if full_answer:
+                        save_to_db(full_answer, citations_data)
+                    raise
                 
             return StreamingResponse(streaming_generator(), media_type="application/x-ndjson")
             
