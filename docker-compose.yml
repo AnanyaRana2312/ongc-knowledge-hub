@@ -59,8 +59,10 @@ services:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOCKER_API_VERSION=1.44
     # We expose port 8081 for cadvisor since frontend is on 8080 internally, 
     # but frontend exposes 80 externally. Let's just use 8081.
     ports:
